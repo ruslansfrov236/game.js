@@ -107,26 +107,41 @@ function moveBullets() {
 }
 
 function moveEnemies() {
-    enemies.forEach((enemy, index) => {
+    // Sondan geriyə iterasiya edirik
+    for (let i = enemies.length - 1; i >= 0; i--) {
+        let enemy = enemies[i];
         const dx = player.x - enemy.x;
         const dy = player.y - enemy.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
 
-        // Düşmənə toxunulduqda
-        if (distance < 30) { // məsafəni azaldıq
-            player.health -= 10; // Düşmənə toxunulduqda 10 can itir
-            if (player.health <= 0) { // Oyunçunun canı 0 və ya aşağı olduqda
-                isGameOver = true;  // Oyun bitir
+        // Səviyyəyə görə zərər miqdarı
+        let damage = 0;
+        if (level === 1) {
+            damage = 10;
+        } else if (level === 2) {
+            damage = 20;
+        } else if (level === 3) {
+            damage = 30;
+        }
+
+        // Düşmən ilə toqquşma (mesafe 30-dan az olduqda)
+        if (distance < 30) {
+            player.health -= damage;
+            if (player.health <= 0) {
+                player.health = 0;
+                isGameOver = true;
             }
+            // Toqquşma olduqda həmin düşməni silirik
+            enemies.splice(i, 1);
+            // Döngüdən çıxmayırıq, digər düşmənlər yoxlanılır
+            continue;
         }
 
         // Düşmənin oyunçuya doğru hərəkəti
         enemy.x += (dx / distance) * enemy.speed;
         enemy.y += (dy / distance) * enemy.speed;
-    });
+    }
 }
-
-
 function detectCollisions() {
     enemies.forEach((enemy, enemyIndex) => {
         bullets.forEach((bullet, bulletIndex) => {
@@ -135,7 +150,7 @@ function detectCollisions() {
             const distance = Math.sqrt(dx * dx + dy * dy);
 
           
-            if (distance < 20) {
+            if (distance < 30) {
                 enemies.splice(enemyIndex, 1);
                 bullets.splice(bulletIndex, 1);
                 enemiesKilled++;
@@ -204,11 +219,12 @@ function drawEnemies() {
 
 
 function spawnHealthPack() {
-    if (player.health < 50 && !healthPackAvailable) {
+    if (player.health <=50 && !healthPackAvailable) {
         healthPack = {
             x: Math.random() * canvas.width,
             y: Math.random() * canvas.height,
-            radius: 20
+            radius: 20,
+            type: 'heart'
         };
         healthPackAvailable = true;
     }
@@ -217,8 +233,11 @@ function spawnHealthPack() {
 function drawHealthPack() {
     if (healthPackAvailable && healthPack) {
         ctx.beginPath();
-        ctx.arc(healthPack.x, healthPack.y, healthPack.radius, 0, Math.PI * 2);
-        ctx.fillStyle = 'green';
+        ctx.fillStyle = 'red';
+        // Sadə ürək forması üçün Bézier əyrilərindən istifadə edirik:
+        ctx.moveTo(healthPack.x, healthPack.y);
+        ctx.bezierCurveTo(healthPack.x - 10, healthPack.y - 10, healthPack.x - 20, healthPack.y + 10, healthPack.x, healthPack.y + 20);
+        ctx.bezierCurveTo(healthPack.x + 20, healthPack.y + 10, healthPack.x + 10, healthPack.y - 10, healthPack.x, healthPack.y);
         ctx.fill();
     }
 }
@@ -228,24 +247,15 @@ function collectHealthPack() {
         const dx = player.x - healthPack.x;
         const dy = player.y - healthPack.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
-
-        if (distance < healthPack.radius + 15) { // Oyunçu yaxınlaşdıqda
-            let interval = setInterval(() => {
-                if (player.health < 100) {
-                    player.health += 10; // 10 can əlavə olunur
-                }
-
-                if (player.health >= 100) {
-                    player.health = 100; // Maksimum can 100
-                    clearInterval(interval);
-                }
-            }, 1000);
-
+        if (distance < healthPack.radius + 15) { // Toxunma məsafəsi
+            player.health  += 10;
             healthPack = null;
             healthPackAvailable = false;
         }
     }
 }
+
+
 function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     if (isGameOver) {
@@ -258,6 +268,8 @@ function draw() {
     movePlayer();
     moveBullets();
     moveEnemies();
+    spawnHealthPack();
+    collectHealthPack()
     detectCollisions();
     drawStickFigure();
     drawBullets();
