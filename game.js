@@ -1,3 +1,4 @@
+
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
@@ -8,7 +9,8 @@ const player = {
     width: 10,
     height: 30,
     gunLength: 30,
-    gunAngle: 0
+    gunAngle: 0,
+    health: 100
 };
 
 const bullets = [];
@@ -16,15 +18,18 @@ const bulletSpeed = 7;
 const bulletColor = 'red';
 
 const enemies = [];
-const enemySpeed = 2;
+var enemySpeed = 2;
 let enemiesKilled = 0;
 
 let isGameOver = false;
+let score = 0;
+
+let level = 1;
+let healthPackAvailable = false;
 
 function resizeCanvas() {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
-
     player.x = canvas.width / 2;
     player.y = canvas.height / 2;
 }
@@ -63,18 +68,24 @@ canvas.addEventListener('click', () => {
         angle: player.gunAngle
     };
     bullets.push(bullet);
+  
 });
 
 function spawnEnemy() {
     const side = Math.floor(Math.random() * 4);
     let x, y;
+    let type = 'circle'; // Başlangıçda dairə
 
     if (side === 0) { x = 0; y = Math.random() * canvas.height; }
     else if (side === 1) { x = canvas.width; y = Math.random() * canvas.height; }
     else if (side === 2) { x = Math.random() * canvas.width; y = 0; }
     else { x = Math.random() * canvas.width; y = canvas.height; }
+    if (score < 100) type = 'circle';
+    
+    if (score >= 100 && score < 300) type = 'square'; // 2-ci səviyyə kvadrat
+    if (score >= 300) type = 'star'; // 3-cü səviyyə ulduz
 
-    enemies.push({ x, y, speed: enemySpeed });
+    enemies.push({ x, y, speed: enemySpeed, type });
 }
 
 function movePlayer() {
@@ -101,14 +112,20 @@ function moveEnemies() {
         const dy = player.y - enemy.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
 
-        if (distance < 20) {
-            isGameOver = true;
+        // Düşmənə toxunulduqda
+        if (distance < 30) { // məsafəni azaldıq
+            player.health -= 10; // Düşmənə toxunulduqda 10 can itir
+            if (player.health <= 0) { // Oyunçunun canı 0 və ya aşağı olduqda
+                isGameOver = true;  // Oyun bitir
+            }
         }
 
+        // Düşmənin oyunçuya doğru hərəkəti
         enemy.x += (dx / distance) * enemy.speed;
         enemy.y += (dy / distance) * enemy.speed;
     });
 }
+
 
 function detectCollisions() {
     enemies.forEach((enemy, enemyIndex) => {
@@ -117,13 +134,23 @@ function detectCollisions() {
             const dy = bullet.y - enemy.y;
             const distance = Math.sqrt(dx * dx + dy * dy);
 
+          
             if (distance < 20) {
                 enemies.splice(enemyIndex, 1);
                 bullets.splice(bulletIndex, 1);
                 enemiesKilled++;
+                score += 10;
 
-                if (enemiesKilled % 10 === 0) {
-                    enemies.forEach(enemy => enemy.speed += 0.5);
+                if (score % 10 === 0) {
+                    enemySpeed += 0.5; // Düşmən sürətini artır
+                }
+
+                if (score >= 100) {
+                    level = 2; // 100 xal ilə 2-ci səviyyə
+                }
+
+                if (score >= 200) {
+                    level = 3; // 200 xal ilə 3-cü səviyyə
                 }
             }
         });
@@ -158,12 +185,67 @@ function drawBullets() {
 function drawEnemies() {
     enemies.forEach(enemy => {
         ctx.beginPath();
-        ctx.arc(enemy.x, enemy.y, 15, 0, Math.PI * 2);
+        if (enemy.type === 'circle') {
+            ctx.arc(enemy.x, enemy.y, 15, 0, Math.PI * 2);
+        } else if (enemy.type === 'square') {
+            ctx.rect(enemy.x - 15, enemy.y - 15, 30, 30);
+        } else if (enemy.type === 'star') {
+            ctx.moveTo(enemy.x, enemy.y - 15);
+            for (let i = 0; i < 5; i++) {
+                ctx.lineTo(enemy.x + Math.cos((18 + i * 72) / 180 * Math.PI) * 15, enemy.y - Math.sin((18 + i * 72) / 180 * Math.PI) * 15);
+            }
+            ctx.closePath();
+        }
         ctx.fillStyle = 'black';
         ctx.fill();
     });
 }
 
+
+
+function spawnHealthPack() {
+    if (player.health < 50 && !healthPackAvailable) {
+        healthPack = {
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height,
+            radius: 20
+        };
+        healthPackAvailable = true;
+    }
+}
+
+function drawHealthPack() {
+    if (healthPackAvailable && healthPack) {
+        ctx.beginPath();
+        ctx.arc(healthPack.x, healthPack.y, healthPack.radius, 0, Math.PI * 2);
+        ctx.fillStyle = 'green';
+        ctx.fill();
+    }
+}
+
+function collectHealthPack() {
+    if (healthPackAvailable && healthPack) {
+        const dx = player.x - healthPack.x;
+        const dy = player.y - healthPack.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        if (distance < healthPack.radius + 15) { // Oyunçu yaxınlaşdıqda
+            let interval = setInterval(() => {
+                if (player.health < 100) {
+                    player.health += 10; // 10 can əlavə olunur
+                }
+
+                if (player.health >= 100) {
+                    player.health = 100; // Maksimum can 100
+                    clearInterval(interval);
+                }
+            }, 1000);
+
+            healthPack = null;
+            healthPackAvailable = false;
+        }
+    }
+}
 function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     if (isGameOver) {
@@ -172,6 +254,7 @@ function draw() {
         ctx.fillText('Məğlub oldun!', canvas.width / 2 - 150, canvas.height / 2);
         return;
     }
+
     movePlayer();
     moveBullets();
     moveEnemies();
@@ -179,6 +262,12 @@ function draw() {
     drawStickFigure();
     drawBullets();
     drawEnemies();
+    drawHealthPack();
+
+    ctx.fillStyle = 'black';
+    ctx.font = '20px Arial';
+    ctx.fillText(`Xal: ${score} | Can: ${player.health} | Level: ${level}`, 20, 30);
+
 }
 
 function gameLoop() {
