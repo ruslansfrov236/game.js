@@ -105,7 +105,7 @@ function moveBullets() {
         }
     });
 }
-if (window.matchMedia("(max-width: 768px)").matches) {
+if ('ontouchstart' in window || navigator.maxTouchPoints) {
     canvas.addEventListener('touchstart', (e) => {
         const touch = e.touches[0];
         touchStartX = touch.clientX;
@@ -126,6 +126,7 @@ if (window.matchMedia("(max-width: 768px)").matches) {
         }
     });
 }
+
 
 function moveEnemies() {
     // Sondan geriyə iterasiya edirik
