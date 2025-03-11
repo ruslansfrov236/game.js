@@ -1,7 +1,13 @@
-
+// Start menu elementlərini əldə et
+const startMenu = document.getElementById('startMenu');
+const startButton = document.getElementById('startButton');
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
+startButton.addEventListener('click', () => {
+    startMenu.style.display = 'none'; // Başlama menyusunu gizlət
+    canvas.style.display = 'block';   // Canvas-ı göstər
 
+})
 const player = {
     x: window.innerWidth / 2,
     y: window.innerHeight / 2,
