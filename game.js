@@ -105,6 +105,27 @@ function moveBullets() {
         }
     });
 }
+if (window.matchMedia("(max-width: 768px)").matches) {
+    canvas.addEventListener('touchstart', (e) => {
+        const touch = e.touches[0];
+        touchStartX = touch.clientX;
+        touchStartY = touch.clientY;
+    });
+
+    canvas.addEventListener('touchmove', (e) => {
+        const touch = e.touches[0];
+        const dx = touch.clientX - touchStartX;
+        const dy = touch.clientY - touchStartY;
+
+        if (Math.abs(dx) > Math.abs(dy)) {
+            keys.left = dx < 0;
+            keys.right = dx > 0;
+        } else {
+            keys.up = dy < 0;
+            keys.down = dy > 0;
+        }
+    });
+}
 
 function moveEnemies() {
     // Sondan geriyə iterasiya edirik
@@ -254,7 +275,20 @@ function collectHealthPack() {
         }
     }
 }
+function checkHealthPackCollision() {
+    if (healthPackAvailable) {
+        const dx = player.x - healthPack.x;
+        const dy = player.y - healthPack.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
 
+        if (distance < player.width / 2 + healthPack.size) {
+            player.health = Math.min(player.health + 20, 100);
+            healthPackAvailable = false;
+            clearTimeout(healthPackTimer);
+            spawnHealthPack();
+        }
+    }
+}
 
 function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -270,6 +304,8 @@ function draw() {
     moveEnemies();
     spawnHealthPack();
     collectHealthPack()
+
+    checkHealthPackCollision();
     detectCollisions();
     drawStickFigure();
     drawBullets();
