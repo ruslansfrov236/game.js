@@ -6,10 +6,23 @@
     <title>Çöp Adam Hərəkət və Atəş</title>
     <style>
         body { margin: 0; overflow: hidden; }
-        canvas { background: #f0f0f0; display: block; }
+        canvas {  display: none; background: #f0f0f0; }
+        #startMenu {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+        }
+
+       
+
     </style>
 </head>
 <body>
+<div id="startMenu">
+    <button id="startButton">Start</button>
+</div>
 <canvas id="gameCanvas"></canvas>
 <script src="game.js"></script> <!-- JavaScript faylını buradan əlavə edirik -->
 </body>
